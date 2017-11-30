@@ -40,14 +40,14 @@ function showBar {
         PUT 7 28; printf "%4.4s  " $barLen%     #Print the percentage
         PUT 5 $halfDone;  echo -e "${RED}\033[7m \033[0m${NC}" #Draw the bar
         tput sgr0
-        }
+}
 # Start Script
 clear
 HIDECURSOR
 echo -e ""                                           
 echo -e ""                                          
 DRAW    #magic starts here - must use caps in draw mode                                              
-echo -e "                   FIND DIFFERENCE FILES"
+echo -e "                  ${GREEN} FIND DIFFERENCE FILES${NC}"
 echo -e "    lqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqk"  
 echo -e "    x                                                   x" 
 echo -e "    mqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqj"
@@ -57,10 +57,10 @@ WRITE
 
 dir1=$1
 dir2=$2
-PUT 11 5; echo "Read all files in $dir1 ..."
+PUT 12 5; echo "Read all files in $dir1 ..."
 arr=($(find $dir1 -name "*"))
-PUT 12 5; echo "Done!"
-PUT 13 5; echo -e "Find difference files between ${BLUE}$1${NC} and ${BLUE}$2${NC}"
+PUT 13 5; echo "Done!"
+PUT 14 5; echo -e "Find difference files between ${BLUE}$1${NC} and ${BLUE}$2${NC}"
 index=1     # To compute % proceed
 num_file_diff=0
 
@@ -71,42 +71,58 @@ for file in "${arr[@]}"; do
     index=$((index + 1))
     # Main
     if [[ -f "$file" ]]; then 
-        base_name=$(basename "$file")
-        path=${file%/*}
+        base_name=$(basename "$file")       # get namefile from fullpath (ex: a/b/abc.xxx -> abc.xxx)
+        path=${file%/*}                     # get path of file from fullpath (ex: a/b/abc.xxx -> a/b)
         path_of_dir2=${path//$dir1/$dir2}
-
+        PUT 10 5; printf "Dir1 : ${GREEN}%-109s${NC}" "$file" 
+        PUT 11 5; printf "Dir2 : ${GREEN}%-109s${NC}" "$path_of_dir2/$base_name" 
         if [[ -d "$path_of_dir2" ]]; then                               # If this folder in dir2
             if [[ ! `find "$path_of_dir2" -name "$base_name"` ]]; then  # file No appear in dir2
                 echo ""
                 echo ""
                 PUT 8 5; printf "New file: ${YELL}%-109s${NC}" "$file"
-		PUT 9 5; printf "Number of diff files: ${GREEN}%4.4s${NC}" "$num_file_diff"
+		        PUT 9 5; printf "Number of diff files: ${GREEN}%4.4s${NC}" "$num_file_diff"
                 echo ${file//$dir1/"."} >> $3                           # just rename to ./xx/..
-                num_file_diff=$(($num_file_diff + 1))
+		        num_file_diff=$(($num_file_diff + 1))
+            else                                                        # If appearing but size differ
+                size1=`du -k "$file" | cut -f1`                         # Compute size of file dir1
+                size2=`du -k "$path_of_dir2//$base_name" | cut -f1`     # Compute size of file dir2
+                if [[ $size1 -ne $size2 ]]; then
+                    PUT 8 5; printf "New file: ${YELL}%-109s${NC}" "$file"
+		            PUT 9 5; printf "Number of diff files: ${GREEN}%4.4s${NC}" "$num_file_diff"
+                    echo ${file//$dir1/"."} >> $3                           # just rename to ./xx/..
+		            num_file_diff=$(($num_file_diff + 1))
+                fi
+    
             fi
         else
             num_file_diff=$(($num_file_diff + 1))
-	    PUT 8 5; printf "New file: ${YELL}%-109s${NC}" "$file"
+	        PUT 8 5; printf "New file: ${YELL}%-109s${NC}" "$file"
             PUT 9 5; printf "Number of diff files: ${GREEN}%4.4s${NC}" "$num_file_diff"
             echo ${file//$dir1/"."} >> $3
         fi
     fi
+    tmp=$(date +%s)
+    total_=`expr $tmp - $beg`
+    minute=$(bc <<< "scale = 1; $total_ / 60")
+    sec=`expr $total_-$minute*60 | bc`
+    PUT 15 5; printf "Time passed${BLUE} %1.4s:%1.1s ${NC} (min:sec)" "$minute" "$sec"
 done
 
 end=$(date +%s)
 # End of your script
 # Clean up at end of script
-PUT 10 30
+PUT 12 30
 echo -e ""                                        
 NORM
-PUT 14 1; echo "=========="
-PUT 15 5; echo -e "${GREEN}\e[4mSUMMARY\e[0m${NC}"
-PUT 16 5; echo -e "${YELL}-> Total difference files: $num_file_diff ${NC}"
+PUT 16 1; echo "=========="
+PUT 17 5; echo -e "${GREEN}\e[4mSUMMARY\e[0m${NC}"
+PUT 18 5; echo -e "${YELL}-> Total difference files: $num_file_diff ${NC}"
 totalTime=`expr $end - $beg`
 if [[ $totalTime -gt 60 ]]; then
     totalTime=$(bc <<< "scale = 1; $totalTime / 60")
-    PUT 17 5; echo -e "${YELL}-> Time for run          : $totalTime min${NC}"
+    PUT 19 5; echo -e "${YELL}-> Time for run          : $totalTime min${NC}"
 else
-    PUT 17 5; echo -e "${YELL}-> Time for run          : $totalTime s${NC}"
+    PUT 19 5; echo -e "${YELL}-> Time for run          : $totalTime s${NC}"
 fi
 exit 0
